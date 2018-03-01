@@ -10,6 +10,9 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Reader;
 
+import parse.Input;
+import parse.Lexer;
+import parse.Parser;
 import semantic.Checker;
 import semantic.Symtab;
 import ast.CompileError;

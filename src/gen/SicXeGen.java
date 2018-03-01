@@ -230,8 +230,9 @@ public class SicXeGen {
 			writer.add(gen(t));
 		}
 		
-		//Locals do not need to be ASM-decremented, since the body is forced to return
-		if (size > 0) {
+		//Locals do not need to be decremented at run time, 
+		//if the body is forced to return
+		if (!(s.getLast() instanceof ReturnStmt)) {
 			writer.comment("Decrement locals");
 			writer.decrement(size);
 			frame.decrementLocal(size);
