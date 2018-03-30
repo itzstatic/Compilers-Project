@@ -6,7 +6,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Stack;
 
-import ast.Location;
+import ast.Loc;
 import ast.Logger;
 
 public class Lexer {
@@ -28,14 +28,14 @@ public class Lexer {
 	
 	private Input input;
 	
-	private Location start = new Location(1, 1, 0); //Of the last token read;
+	private Loc start = new Loc(1, 1, 0); //Of the last token read;
 	
 	//If empty, then a call to next() will consume input and leave buffer empty; 
 	//and a call to peek() will consume input then push to the buffer.
 	//If non-empty, then next() will pop the buffer - but not consume input;
 	//and peek() will peek the buffer and have no side effects.
 	private Stack<Token> buffer = new Stack<>();
-	private Stack<Location> locs = new Stack<>();
+	private Stack<Loc> locs = new Stack<>();
 	
 	public Lexer(Input input) {
 		this.input = input;
@@ -109,39 +109,50 @@ public class Lexer {
 		if (Character.isDigit(c)) {
 			//This token is a float iff d != null or e != null
 			Integer i = null, d = null, e = null; //Integer, decimal, exponent
-			Boolean sign = null; //Of the exponent
-			StringBuilder builder = new StringBuilder();
-			
+//			if (input.accept('0')) {
+//				Radix radix = null;
+//				if (input.accept('b')) {
+//					radix = Radix.BIN;
+//					i = input.readBinary();
+//				} else if (input.accept('o')) {
+//					radix = Radix.OCT;
+//					i = input.readOctal();
+//				} else if (input.accept('x')) {
+//					radix = Radix.HEX;
+//					i = input.readHex();
+//				} else {
+//					Logger.INSTANCE.log("Expected radix specifier not " + c); 
+//				}
+//				return new Token(new IntegerNum(i, radix), TokenType.INTEGER);
+//			}
+			//Not a custom-radix integer
 			//Required main portion
 			i = input.readDigits();
-			builder.append(i);
+			if (i == null) { //Could not fit in int
+				Logger.INSTANCE.log(location(), "Integer out of range");
+			}
+			Boolean sign = null; //Of the exponent
 			
 			//Optional decimal float portion
 			if (input.accept('.')) {
-				builder.append('.');
 				d = input.readDigits();
 				if (d == null) {
-					return new Token(builder.toString(), TokenType.ERROR);
+					Logger.INSTANCE.log(location(), "Expected float digits");
 				} 
-				builder.append(d);
 			}
 			//Optional exponent float portion
 			if (input.accept('E')) {
-				builder.append('E');
 				//Optional unary sign portion
 				if (input.accept('+')) {
 					sign = true;
-					builder.append('+');
 				} else if (input.accept('-')) {
 					sign = false;
-					builder.append('-');
 				}
 				//Required magnitude portion
 				e = input.readDigits();
 				if (e == null) {
-					return new Token(builder.toString(), TokenType.ERROR);
+					Logger.INSTANCE.log(location(), "Expected float exponent");
 				}
-				builder.append(e);
 			}
 			//If this token is a float
 			if (e != null || d != null) {
@@ -158,14 +169,14 @@ public class Lexer {
 		return new Token(input.next() + input.readLettersOrDigits(), TokenType.ERROR);
 	}
 	
-	public void prev(Token token, Location start) {
+	public void prev(Token token, Loc start) {
 		buffer.push(token);
 		locs.push(start);
 	}
 	
 	public Token peek() {
 		if (buffer.isEmpty()) {
-			Location start = this.start;
+			Loc start = this.start;
 			buffer.push(next());
 			locs.push(this.start);
 			this.start = start;
@@ -273,11 +284,11 @@ public class Lexer {
 		return input.getCol();
 	}
 	
-	public Location location() {
-		return new Location(getRow(), getCol(), input.getPos());
+	public Loc location() {
+		return new Loc(getRow(), getCol(), input.getPos());
 	}
 	
-	public Location start() {
+	public Loc start() {
 		return start;
 	}
 }

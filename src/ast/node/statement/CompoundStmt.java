@@ -2,6 +2,7 @@ package ast.node.statement;
 
 import java.util.List;
 
+import ast.Loc;
 import ast.Visitor;
 import ast.node.Stmt;
 import ast.node.declare.VarDeclaration;
@@ -10,7 +11,9 @@ public class CompoundStmt extends Stmt {
 	final public List<VarDeclaration> locals;
 	final public List<Stmt> statements;
 	
-	public CompoundStmt(List<VarDeclaration> locals, List<Stmt> statements) {
+	public CompoundStmt(Loc start, Loc end, List<VarDeclaration> locals, 
+			List<Stmt> statements) {
+		super(start, end);
 		this.locals = locals;
 		this.statements = statements;
 	}
@@ -57,11 +60,11 @@ public class CompoundStmt extends Stmt {
 	@Override
 	public Stmt propagate() {
 		if (statements.size() == 0) {
-			return new NullStmt();
+			return new NullStmt(start);
 		} 
 		if (statements.size() == 1) {
 			return statements.get(0);
 		}
-		return null;
+		return this;
 	}
 }

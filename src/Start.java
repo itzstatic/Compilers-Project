@@ -1,7 +1,7 @@
 
 
 import gen.Block;
-import gen.SicXeGen;
+import gen.sicxe.SicXeGen;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -22,47 +22,43 @@ import ast.node.Program;
 public class Start {
 	
 	public static void main(String[] args) throws IOException {
+//		test();
+//		System.exit(0);
+		
 		if (args.length < 1) {
 			System.err.println("Requires file name!");
 			System.exit(2);
 		}
 		
 		String fileName = args[0];
-		
-		Reader reader = null;
-		try {
-			reader = new FileReader(fileName);
-		} catch (FileNotFoundException e) {
-			System.err.println("Cannot open file \"" + fileName + "\"!");
-			System.exit(1);
-		}
-		
-		//Project 1: Lexer
-//		Lexer lexer = new Lexer(new Input(reader, 2, 4));
-//		Token token;
-//		while ((token = lexer.next()) != null) {
-//			if (token.type == TokenType.SPECIAL) {
-//				System.out.println(token.payload);
-//			} else {
-//				System.out.println(token.type + ": " + token.payload);
-//			}
-//		}
+		Reader reader = new FileReader(fileName);
 		
 		//Parsing with symtab
 		Parser parser = new Parser(new Lexer(new Input(reader, 2, 4)));
 		Program p = parser.program();
-		PrintWriter w = new PrintWriter(new File("output.txt"));
-		
+
 		//Semantic check
 		p.accept(new Checker(new Symtab()));
-		
+	
+
+		String mainName = fileName.split("\\.")[0];
 		//Codegen
-		SicXeGen gen =  new SicXeGen();
+		SicXeGen gen;
+//		if (p.runnable) {
+//			gen = new SicXeGen(mainName);
+//		} else {
+//			gen = new ExtGen(mainName);
+//		}
+		gen = new SicXeGen(mainName);
 		Block b = gen.gen(p);
+		
+		PrintWriter w = new PrintWriter(new File(mainName + ".asm"));
+		
 		b.write(w);
 		w.flush();
 		System.out.println("Compilation complete.");
 		w.close();
+		
 		//GUI IDE
 //		Ide ide = new Ide();
 //		ide.addButtonListener(e -> {
@@ -82,19 +78,19 @@ public class Start {
 	
 	public static void test() throws FileNotFoundException {
 		//30 test files
-		for (int i = 1; i <= 59; i++) {
-			Reader reader = new FileReader(new File("input" + i + ".txt"));
+		for (int i = 1; i <= 54; i++) {
+			Reader reader = new FileReader(new File("files/test" + i + ".txt"));
 			Parser parser = new Parser(new Lexer(new Input(reader, 3, 4)));
 			try {
-				parser.program();
-				//Checker c = new Checker(new Symtab());
-				//p.accept(c);
+				Symtab s = new Symtab();
+				//new SymtabInit().init(s);
+				Checker c = new Checker(s);
+				parser.program().accept(c);
+				System.out.println("Accepted " + i);
 			} catch (CompileError e) {
-				if (i <= 29) {
-					continue;
-				}
-				System.err.println("ON FILE " + i);
-				e.printStackTrace();
+				
+//				System.err.println("ON FILE " + i);
+//				e.printStackTrace();
 			}
 		}
 	}

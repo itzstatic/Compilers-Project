@@ -2,6 +2,7 @@ package gen;
 
 import gen.block.ParentBlock;
 import gen.block.SourceBlock;
+import gen.sicxe.Subroutines;
 
 import java.util.Stack;
 
@@ -78,15 +79,15 @@ public class BlockWriter {
 			write("rmo a,x", 2);
 			break;
 		case PARAM:
-			write("add _frame + " + array.disp, 3);
-			write("sta _ptr", 3);
+			write("add frame + " + array.disp, 3);
+			write("sta ptr", 3);
 			break;
 		}
 	}
 	
 	public void moveAccToReg(Expr e) {
 		switch(e.getTypeId()) {
-		case FLOAT: write("stf _fr", 3); break;
+		case FLOAT: write("stf fr", 3); break;
 		case INT: write("rmo a,s", 2); break;
 		case VOID:
 		}
@@ -94,14 +95,10 @@ public class BlockWriter {
 	
 	public void moveRegToAcc(Expr e) {
 		switch(e.getTypeId()) {
-		case FLOAT: write("ldf _fr", 3); break;
+		case FLOAT: write("ldf fr", 3); break;
 		case INT: write("rmo s,a", 2); break;
 		case VOID:
 		}
-	}
-	
-	public void reserve(String label, int byteCount) {
-		write(String.format("%s resb %d", label, byteCount), byteCount);
 	}
 	
 	//Decrement top by A
@@ -109,9 +106,9 @@ public class BlockWriter {
 		if (n == 0) {
 			return;
 		}
-		write("lda _top", 3);
+		write("lda top", 3);
 		write("sub #" + n, 3);
-		write("sta _top", 3);
+		write("sta top", 3);
 	}
 	
 	//Invalidates A
@@ -119,9 +116,9 @@ public class BlockWriter {
 		if (n == 0) {
 			return;
 		}
-		write("lda _top", 3);
+		write("lda top", 3);
 		write("add #" + n, 3);
-		write("sta _top", 3);
+		write("sta top", 3);
 	}
 	
 	//A into stack
@@ -129,11 +126,11 @@ public class BlockWriter {
 		switch (e.getTypeId()) {
 		case FLOAT: 
 			subs.pushf = true;
-			write("jsub _pushf" , 3); 
+			write("jsub pushf" , 3); 
 			break;
 		case INT: 
 			subs.push = true;
-			write("jsub _push", 3); 
+			write("jsub push", 3); 
 			break;
 		case VOID: //Nothing
 		}
@@ -144,11 +141,11 @@ public class BlockWriter {
 		switch (e.getTypeId()) {
 		case FLOAT: 
 			subs.popf = true;
-			write("jsub _popf" , 3);
+			write("jsub popf" , 3);
 			break;
 		case INT: 
 			subs.pop = true;
-			write("jsub _pop", 3); 
+			write("jsub pop", 3); 
 			break;
 		case VOID: //Nothing
 		}
@@ -156,7 +153,7 @@ public class BlockWriter {
 	
 	public void compare(TypeId typeId) {
 		switch(typeId) {
-		case FLOAT: write("compf _fr", 3); break;
+		case FLOAT: write("compf fr", 3); break;
 		case INT: write("compr a,s", 2); break;
 		case VOID:
 		}
@@ -165,46 +162,46 @@ public class BlockWriter {
 	public void seteq(TypeId typeId) {
 		subs.seteq = true;
 		compare(typeId);
-		write("jsub _seteq", 3);
+		write("jsub seteq", 3);
 	}
 	
 	public void setne(TypeId typeId) {
 		subs.setne = true;
 		compare(typeId);
-		write("jsub _setne", 3);
+		write("jsub setne", 3);
 	}
 	
 	public void setlt(TypeId typeId) {
 		subs.setlt = true;
 		compare(typeId);
-		write("jsub _setlt", 3);
+		write("jsub setlt", 3);
 	}
 	
 	public void setgt(TypeId typeId) {
 		subs.setgt = true;
 		compare(typeId);
-		write("jsub _setgt", 3);
+		write("jsub setgt", 3);
 	}
 	
 	public void setlte(TypeId typeId) {
 		subs.setlte = true;
 		compare(typeId);
-		write("jsub _setlte", 3);
+		write("jsub setlte", 3);
 	}
 	
 	public void setgte(TypeId typeId) {
 		subs.setgte = true;
 		compare(typeId);
-		write("jsub _setgte", 3);
+		write("jsub setgte", 3);
 	}
 	
 	public void popWord() {
 		subs.pop = true;
-		write("jsub _pop", 3);
+		write("jsub pop", 3);
 	}
 	
 	public void pushWord() {
 		subs.push = true;
-		write("jsub _push", 3);
+		write("jsub push", 3);
 	}
 }

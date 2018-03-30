@@ -1,5 +1,6 @@
 package ast.node.statement;
 
+import ast.Loc;
 import ast.Visitor;
 import ast.node.Expr;
 import ast.node.Stmt;
@@ -7,8 +8,13 @@ import ast.node.Stmt;
 public class ReturnStmt extends Stmt {
 	public Expr value;
 	
-	public ReturnStmt(Expr value) {
+	public ReturnStmt(Loc start, Loc end, Expr value) {
+		super(start, end);
 		this.value = value;
+	}
+	
+	public boolean hasReturnValue() {
+		return value != null;
 	}
 	
 	@Override

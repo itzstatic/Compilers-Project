@@ -2,6 +2,7 @@ package ast.node.expression;
 
 import java.util.List;
 
+import ast.Loc;
 import ast.TypeId;
 import ast.Visitor;
 import ast.node.Expr;
@@ -15,7 +16,8 @@ public class CallExpr extends Expr {
 	//To be compiled
 	public FuncDeclaration func;
 	
-	public CallExpr(String id, List<Expr> params) {
+	public CallExpr(Loc start, Loc end, String id, List<Expr> params) {
+		super(start, end);
 		this.id = id;
 		this.params = params;
 	}

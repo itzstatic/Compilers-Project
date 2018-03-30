@@ -1,6 +1,6 @@
 package parse;
 
-import ast.Location;
+import ast.Loc;
 
 
 
@@ -8,8 +8,8 @@ public class CompileError extends RuntimeException {
 	
 	private static final long serialVersionUID = -4505248331882449962L;
 	
-	public final Location start;
-	public final Location end;
+	public final Loc start;
+	public final Loc end;
 	
 	public CompileError(String message) {
 		super(message);
@@ -17,13 +17,13 @@ public class CompileError extends RuntimeException {
 		end = null;
 	}
 	
-	public CompileError(Location loc, String message) {
+	public CompileError(Loc loc, String message) {
 		super(message);
 		start = loc;
 		end = null;
 	}
 	
-	public CompileError(Location start, Location end, String message) {
+	public CompileError(Loc start, Loc end, String message) {
 		super(message);
 		this.start = start;
 		this.end = end;

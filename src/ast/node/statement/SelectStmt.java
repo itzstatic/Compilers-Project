@@ -1,5 +1,6 @@
 package ast.node.statement;
 
+import ast.Loc;
 import ast.Visitor;
 import ast.node.Expr;
 import ast.node.Stmt;
@@ -10,10 +11,21 @@ public class SelectStmt extends Stmt {
 	public Stmt affirmative;
 	public Stmt negative;
 	
-	public SelectStmt(Expr condition, Stmt affirmative, Stmt negative) {
+	public SelectStmt(Loc start, Loc end, Expr condition, 
+			Stmt affirmative, Stmt negative) {
+		super(start, end);
 		this.condition = condition;
 		this.affirmative = affirmative;
 		this.negative = negative;
+	}
+	
+	public boolean hasElse() {
+		return negative != null;
+	}
+	
+	public boolean isTrue() {
+		return condition instanceof IntegerExpr 
+			&& ((IntegerExpr)condition).value != 0;
 	}
 	
 	@Override
@@ -29,30 +41,27 @@ public class SelectStmt extends Stmt {
 
 	@Override
 	public boolean returns() {
-		if (negative == null) {
-			return false; //TODO Return whether condition is true (static eval)
+		if (hasElse()) {
+			return affirmative.returns() && negative.returns();
 		}
-		return affirmative.returns() && negative.returns();
+		if (condition instanceof IntegerExpr) {
+			return ((IntegerExpr) condition).value != 0 && affirmative.returns();
+		}
+		return false;
 	}
 
 	@Override
 	public Stmt propagate() {
 		if (condition instanceof IntegerExpr) {
 			boolean isTrue = ((IntegerExpr) condition).value != 0;
-			//If
-			if (negative == null) {
-				if (isTrue) {
-					return affirmative;
-				} else {
-					return new NullStmt();
-				}
-			//If-Else
+			if (isTrue) {
+				return affirmative;
+			}
+			
+			if (hasElse()) {
+				return negative;
 			} else {
-				if (isTrue) {
-					return affirmative;
-				} else {
-					return negative;
-				}
+				return new NullStmt(start);
 			}
 		}
 		return this;

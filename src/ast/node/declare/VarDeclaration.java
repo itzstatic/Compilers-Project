@@ -1,6 +1,8 @@
 package ast.node.declare;
 
+import ast.Loc;
 import ast.Scope;
+import ast.TypeId;
 import ast.node.Declaration;
 
 public class VarDeclaration extends Declaration {
@@ -12,12 +14,16 @@ public class VarDeclaration extends Declaration {
 	
 	public int disp;
 	
-	public VarDeclaration(Scope scope, boolean isArray) {
+	public VarDeclaration(Loc start, Loc end, TypeId typeId, String id, 
+			Scope scope, boolean isArray) {
+		super(start, end, typeId, id);
 		this.scope = scope;
 		dimension = isArray ? -1 : 0;
 	} 
 	
-	public VarDeclaration(Scope scope, int dimension) {
+	public VarDeclaration(Loc start, Loc end, TypeId typeId, String id,
+			Scope scope, int dimension) {
+		super(start, end, typeId, id);
 		this.scope = scope;
 		this.dimension = dimension;;
 	}
@@ -44,5 +50,10 @@ public class VarDeclaration extends Declaration {
 		} else {
 			return "D: " + typeId + " " + id;
 		}
+	}
+
+	@Override
+	public boolean isVar() {
+		return true;
 	}
 }

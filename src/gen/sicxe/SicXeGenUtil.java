@@ -1,4 +1,4 @@
-package gen;
+package gen.sicxe;
 
 import ast.node.Expr;
 import ast.node.declare.VarDeclaration;
@@ -66,9 +66,9 @@ public class SicXeGenUtil {
 	
 	public static void buildPtr(StringBuilder instr, VarDeclaration array) {
 		switch(array.scope){
-		case GLOBAL: instr.append(String.format("%s,X", array.id)); break;
-		case LOCAL: instr.append(String.format("_frame + %d,X", array.disp)); break;
-		case PARAM: instr.append("@_ptr"); break;
+		case GLOBAL: instr.append(String.format("_%s,X", array.id)); break;
+		case LOCAL: instr.append(String.format("frame + %d,X", array.disp)); break;
+		case PARAM: instr.append("@ptr"); break;
 		}
 	}
 
@@ -76,7 +76,7 @@ public class SicXeGenUtil {
 		switch(var.scope) {
 		case GLOBAL: instr.append(var.id); break;
 		case LOCAL:
-		case PARAM: instr.append(String.format("_frame + %d", var.disp)); break;
+		case PARAM: instr.append(String.format("frame + %d", var.disp)); break;
 		}
 	}
 	

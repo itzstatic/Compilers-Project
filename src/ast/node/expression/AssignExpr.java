@@ -9,6 +9,7 @@ public class AssignExpr extends Expr {
 	public Expr right;
 	
 	public AssignExpr(LeftExpr left, Expr right) {
+		super(left.start, right.end);
 		this.left = left;
 		this.right = right;
 	}

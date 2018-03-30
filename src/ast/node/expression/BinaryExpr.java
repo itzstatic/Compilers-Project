@@ -11,6 +11,7 @@ public class BinaryExpr extends Expr {
 	public final Operation op;
 	
 	public BinaryExpr(Expr left, Expr right, Operation op) {
+		super(left.start, right.end);
 		this.left = left;
 		this.right = right;
 		this.op = op;
@@ -36,7 +37,8 @@ public class BinaryExpr extends Expr {
 			case NE: v = (l != r ? 1 : 0); break;
 			default: throw new RuntimeException();
 			}
-			result = new IntegerExpr(v);
+			System.out.println("Binary props " + v);
+			result = new IntegerExpr(start, end, v);
 		} else if (left instanceof FloatExpr && right instanceof FloatExpr)  {
 			double l = ((FloatExpr) left).value;
 			double r = ((FloatExpr) right).value;
@@ -56,23 +58,22 @@ public class BinaryExpr extends Expr {
 			default: throw new RuntimeException();
 			}
 			if (op.isRelational()) {
-				result = new IntegerExpr(i);
+				result = new IntegerExpr(start, end, i);
 			} else {
-				result = new FloatExpr(f);
+				result = new FloatExpr(start, end, f);
 			}					
 		} else {
-			return null;
+			return this;
 		}
-		result.start = left.start;
-		result.end = right.end;
 		return result;
 	}
 	
 	@Override
 	public TypeId getTypeId() {
-		if (op.isRelational()) {
-			return TypeId.INT; //Weakly typed C style
-		} 
+//		if (op.isRelational()) {
+//			return TypeId.INT; //Weakly typed C style
+//		} 
+		//Prof Eggen said so!
 		return left.getTypeId(); //Arbitrarily use left, but right is identical
 	}
 	

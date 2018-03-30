@@ -1,11 +1,11 @@
 package ast;
 
-public class Location {
+public class Loc {
 	final public int row;
 	final public int col;
 	final public int pos;
 	
-	public Location(int row, int col, int pos) {
+	public Loc(int row, int col, int pos) {
 		this.row = row;
 		this.col = col;
 		this.pos = pos;

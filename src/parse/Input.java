@@ -94,7 +94,56 @@ public class Input {
 		if (builder.length() == 0) {
 			return null;
 		}
-		return Integer.parseInt(builder.toString());
+		try {
+			return Integer.parseInt(builder.toString());
+		} catch (NumberFormatException e) {
+			return null;
+		}
+	}
+	
+	public Integer readBinary() {
+		StringBuilder builder = new StringBuilder();
+		while ("01".indexOf(peek()) >= 0) {
+			builder.append(next());
+		}
+		if (builder.length() == 0) {
+			return null;
+		}
+		try {
+			return Integer.parseInt(builder.toString(), 2);
+		} catch (NumberFormatException e) {
+			return null;
+		}
+	}
+	
+	public Integer readOctal() {
+		StringBuilder builder = new StringBuilder();
+		while ("01234567".indexOf(peek()) >= 0) {
+			builder.append(next());
+		}
+		if (builder.length() == 0) {
+			return null;
+		}
+		try {
+			return Integer.parseInt(builder.toString(), 2);
+		} catch (NumberFormatException e) {
+			return null;
+		}
+	}
+	
+	public Integer readHex() {
+		StringBuilder builder = new StringBuilder();
+		while ("0123456789ABCDEFabcdef".indexOf(peek()) >= 0) {
+			builder.append(next());
+		}
+		if (builder.length() == 0) {
+			return null;
+		}
+		try {
+			return Integer.parseInt(builder.toString(), 2);
+		} catch (NumberFormatException e) {
+			return null;
+		}
 	}
 	
 	//Never returns null

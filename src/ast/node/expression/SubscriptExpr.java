@@ -1,5 +1,6 @@
 package ast.node.expression;
 
+import ast.Loc;
 import ast.TypeId;
 import ast.Visitor;
 import ast.node.Expr;
@@ -8,7 +9,8 @@ public class SubscriptExpr extends LeftExpr {
 	final public IdExpr array;
 	public Expr index;
 	
-	public SubscriptExpr(IdExpr array, Expr index) {
+	public SubscriptExpr(Loc end, IdExpr array, Expr index) {
+		super(array.start, end);
 		this.array = array;
 		this.index = index;
 	}

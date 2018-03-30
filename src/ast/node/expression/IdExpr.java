@@ -1,5 +1,6 @@
 package ast.node.expression;
 
+import ast.Loc;
 import ast.TypeId;
 import ast.node.declare.VarDeclaration;
 
@@ -8,7 +9,8 @@ public class IdExpr extends LeftExpr {
 	
 	public VarDeclaration var;
 	
-	public IdExpr(String id) {
+	public IdExpr(Loc start, Loc end, String id) {
+		super(start, end);
 		this.id = id;
 	}
 	

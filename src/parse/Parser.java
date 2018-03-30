@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-import ast.Location;
+import ast.Loc;
 import ast.Logger;
 import ast.Operation;
 import ast.Scope;
@@ -39,106 +39,118 @@ public class Parser {
 	}
 	
 	public Program program() {
-		Program result = new Program();
+		List<Declaration> declarations = new ArrayList<>();
 		Declaration d;
 		while ((d = declaration()) != null) {
-			result.declarations.add(d);
+			declarations.add(d);
 		}
 		if (lexer.peek() != null) {
 			Logger.INSTANCE.log(location(), "Unexpected token: " + lexer.peek().payload);
 		}
-		return result;
+		if (declarations.isEmpty()) {
+			Logger.INSTANCE.log("Expected declaration");
+		}
+		return new Program(declarations);
 	}
 	
 	public Declaration declaration() {
-		Declaration result;
 		TypeId typeId = typeId();
-		Location start = lexer.start();
+		Loc start = lexer.start();
 		if (typeId == null) {
 			return null;
 		}
 		String id = lexer.expectId();
 		if (lexer.accept(";")) {
-			result = new VarDeclaration(Scope.GLOBAL, false);
+			return new VarDeclaration(start, location(), typeId, 
+				id, Scope.GLOBAL, false);
 		} else if (lexer.accept("[")) {
-			result = new VarDeclaration(Scope.GLOBAL, lexer.expectInteger());
+			int dimension = lexer.expectInteger();
 			lexer.expect("]");
 			lexer.expect(";");
+			return new VarDeclaration(start, location(), typeId, 
+				id, Scope.GLOBAL, dimension);
 		} else if (lexer.accept("(")){
 			List<VarDeclaration> params = params();
 			lexer.expect(")");
 			CompoundStmt body = body();
-			result = new FuncDeclaration(params, body);
+			return new FuncDeclaration(start, location(), typeId, id, params, body);
 		} else {
 			Logger.INSTANCE.log(location(), "Expected declaration");
 			return null;
 		}
-		result.typeId = typeId;
-		result.id = id;
-		result.start = start;
-		result.end = location();
-		return result;
 	}
 	
 	public CompoundStmt body() {
-		CompoundStmt result;
 		lexer.expect("{");
-		Location start = lexer.start();
+		Loc start = lexer.start();
 		List<VarDeclaration> locals = locals();
 		List<Stmt> statements = statements();
 		lexer.expect("}");
-		result = new CompoundStmt(locals, statements);
-		result.start = start;
-		result.end = location();
-		return result;
+		return new CompoundStmt(start, location(), locals, statements);
+	}
+
+	public List<VarDeclaration> params() {
+		TypeId typeId = requireTypeId();
+		Loc start = lexer.location();
+		String id;
+		if (typeId == TypeId.VOID) {
+			id = lexer.acceptId();
+			if (id != null) {
+				return paramList(start, typeId, id);
+			} else {
+				return new ArrayList<>();
+			}
+		} else {
+			id = lexer.expectId();
+			return paramList(start, typeId, id);
+		}
 	}
 	
-	public List<VarDeclaration> params() {
-		if (lexer.acceptKeyword("void")) {
-			return new ArrayList<>();
-		}
+	public List<VarDeclaration> paramList(Loc start, TypeId typeId, String id) {
 		List<VarDeclaration> result = new ArrayList<>();
-		do {
-			VarDeclaration param;
-			TypeId typeId = requireTypeId();
-			Location start = lexer.start();
-			String id = lexer.expectId();
+		boolean isArray = false;
+		if (lexer.accept("[")) {
+			isArray = true;
+			lexer.expect("]");
+		}
+		result.add(new VarDeclaration(start, location(), typeId, id, 
+			Scope.PARAM, isArray));
+		while (lexer.accept(",")) {
+			typeId = requireTypeId();
+			start = lexer.location();
+			id = lexer.expectId();
+			isArray = false;
 			if (lexer.accept("[")) {
+				isArray = true;
 				lexer.expect("]");
-				param = new VarDeclaration(Scope.PARAM, true);
-			} else {
-				param = new VarDeclaration(Scope.PARAM, false);
 			}
-			param.typeId = typeId;
-			param.id = id;
-			param.start = start;
-			param.end = lexer.location();
-			result.add(param);
-		} while (lexer.accept(","));
+			result.add(new VarDeclaration(start, location(), typeId, id, 
+				Scope.PARAM, isArray));
+		}
 		return result;
 	}
 	
 	public List<VarDeclaration> locals() {
 		List<VarDeclaration> result = new ArrayList<>();
 		TypeId typeId;
-		String id;
-		Location start;
 		while ((typeId = typeId()) != null) {
-			start = lexer.start();
-			id = lexer.expectId();
-			VarDeclaration local;
+			Loc start = lexer.start();
+			String id = lexer.expectId();
+			boolean isArray = false;
+			int dimension = -1; //If array
 			if (lexer.accept("[")) {
-				local = new VarDeclaration(Scope.LOCAL, lexer.expectInteger());
+				isArray = true;
+				dimension = lexer.expectInteger();
 				lexer.accept("]");
-			} else {
-				local = new VarDeclaration(Scope.LOCAL, false);
 			}
 			lexer.expect(";");
-			local.typeId = typeId;
-			local.id = id;
-			local.start = start;
-			local.end = location();
-			result.add(local);
+			if (isArray) {
+				result.add(new VarDeclaration(start, location(), typeId, id, 
+					Scope.LOCAL, dimension));
+			} else {
+				result.add(new VarDeclaration(start, location(), typeId, id, 
+					Scope.LOCAL, false));
+			}
 		}
 		return result;
 	}
@@ -166,22 +178,20 @@ public class Parser {
 	}
 	
 	public Stmt statement() {
-		Stmt result;
-		Location start;
+		Loc start;
 		Expr expr;
 		if (lexer.accept(";")) {
 			start = lexer.start();
-			result = new NullStmt();
+			return new NullStmt(start);
 		} else if (lexer.accept("{")) {
 			start = lexer.start();
 			List<VarDeclaration> locals = locals();
 			List<Stmt> statements = statements();
 			lexer.expect("}");
-			result = new CompoundStmt(locals, statements);
+			return new CompoundStmt(start, location(), locals, statements);
 		} else if ((expr = expression()) != null) {
-			start = expr.start;
 			lexer.expect(";");
-			result = new ExprStmt(expr);
+			return new ExprStmt(location(), expr);
 		} else if (lexer.acceptKeyword("if")) {
 			start = lexer.start();
 			lexer.expect("(");
@@ -192,25 +202,22 @@ public class Parser {
 			if (lexer.acceptKeyword("else")) {
 				negative = requireStmt();
 			}
-			result = new SelectStmt(condition, affirmative, negative);
+			return new SelectStmt(start, location(), condition, affirmative, negative);
 		} else if (lexer.acceptKeyword("while")) {
 			start = lexer.start();
 			lexer.expect("(");
 			Expr condition = require(this::expression);
 			lexer.expect(")");
 			Stmt body = requireStmt();
-			result = new IterationStmt(condition, body);
+			return new IterationStmt(start, location(), condition, body);
 		} else if (lexer.acceptKeyword("return")) {
 			start = lexer.start();
 			Expr value = expression();
 			lexer.expect(";");
-			result = new ReturnStmt(value);
+			return new ReturnStmt(start, location(), value);
 		} else {
 			return null;
 		}
-		result.start = start;
-		result.end = location();
-		return result;
 	}
 	
 	public TypeId requireTypeId() {
@@ -261,8 +268,6 @@ public class Parser {
 				if (lexer.accept("=")) {
 					Expr right = require(this::expression);
 					left = new AssignExpr(var, right);
-					left.start = var.start;
-					left.end = right.end;
 				//V' T' A'
 				} else {
 					left = additiveRest(termRest(var));
@@ -276,8 +281,6 @@ public class Parser {
 			if (relOp != null) {
 				Expr right = require(this::additive);
 				result = new BinaryExpr(left, right, relOp);
-				result.start = left.start;
-				result.end = right.end;
 			} else {
 				result = left;
 			}
@@ -286,31 +289,6 @@ public class Parser {
 			return null;
 		}
 		return result;
-//		/////
-//		if ((left = additiveRest(termRest(callOrVar()))) != null) {
-//			Operation relop = relOp();
-//			if (relop == null) {
-//				result = left;
-//			} else {
-//				right = require(this::additive);
-//				result = new BinaryExpr(left, right, relop);
-//				result.start = left.start;
-//				result.end = left.end;
-//			}
-//		}
-//		if ((var = variable()) != null) {
-//			Location start = lexer.start();
-//			else if ((left = additiveRest(termRest(var))) != null) {
-//				
-//			//Basic var
-//			} else {
-//				//This will probably never happen
-//				result = var;
-//				throw new IllegalStateException();
-//			}
-//		//Simple expression
-//		} 
-//		return result;
 	}
 	
 	public Expr simple() {
@@ -322,19 +300,17 @@ public class Parser {
 			if (relop != null) {
 				if ((right = additive()) != null) {
 				} else if ((right = additiveRest(termRest(callOrVar()))) != null) {
+					System.err.println("Parser#simple is doing it!");
 				} else {
 					result = null;
 				}
-				result = new BinaryExpr(left, right, relop);
-				result.start = left.start;
-				result.end = right.end;
+				return new BinaryExpr(left, right, relop);
 			} else {
-				result = left;
+				return left;
 			}	
 		} else {
-			result = null;
+			return null;
 		}
-		return result;
 	}
 
 	public Operation relOp() {
@@ -374,15 +350,12 @@ public class Parser {
 		Operation addop;
 		Expr right;
 		while ((addop = addOp()) != null) {
-			if ((right = term()) != null) {
+			if ((right = termRest(factor())) != null) {
 			} else if ((right = termRest(callOrVar())) != null) {
 			} else {
 				return null;
 			}
-			Location start = left.start;
 			left = new BinaryExpr(left, right, addop);
-			left.start = start;
-			left.end = right.end;
 		}
 		return left;
 	}
@@ -397,27 +370,19 @@ public class Parser {
 		return null;
 	}
 	
-	public Expr term() {
-		Expr left = factor();
-		return termRest(left);
-	}
-	
 	public Expr termRest(Expr left) {
 		if (left == null) {
 			return null;
 		}
 		Operation mulop;
-		Expr right;
 		while ((mulop = mulOp()) != null) {
-			Location start = left.start;
+			Expr right;
 			if ((right = factor()) != null) {
 			} else if ((right = callOrVar()) != null) {
 			} else {
 				return null;
 			}
 			left = new BinaryExpr(left, right, mulop);
-			left.start = start;
-			left.end = right.end;
 		}
 		return left;
 	}
@@ -437,49 +402,42 @@ public class Parser {
 		String id = lexer.acceptId();
 		if (id != null) {
 			if ((result = call(id)) != null) {
+				return result;
 			} else {
-				result = variable(id);
+				return variable(id);
 			}
-		} else{
-			return null;
-		}
-		return result;
-	}
-	
-	public Expr factor() {
-		Expr result;
-		Integer integer;
-		FloatNum floatnum;
-		Location start;
-		//Parenthesized expr
-		if (lexer.accept("(")) {
-			start = lexer.start();
-			result = require(this::expression);
-			lexer.expect(")");
-		//Integer constant
-		} else if ((integer = lexer.acceptInteger()) != null) {
-			start = lexer.start();
-			result = new IntegerExpr(integer);
-		//Float constant
-		} else if ((floatnum = lexer.acceptFloat()) != null) {
-			start = lexer.start();
-			result = new FloatExpr(floatnum.doubleValue());
 		} else {
 			return null;
 		}
-		result.start = start;
-		result.end = location();
-		return result;
+	}
+	
+	public Expr factor() {
+		Integer integer;
+		FloatNum floatnum;
+		//Parenthesized expr
+		if (lexer.accept("(")) {
+			Expr result = require(this::expression);
+			lexer.expect(")");
+			return result;
+		//Integer constant
+		} else if ((integer = lexer.acceptInteger()) != null) {
+			Loc start = lexer.start();
+			return new IntegerExpr(start, location(), integer);
+		//Float constant
+		} else if ((floatnum = lexer.acceptFloat()) != null) {
+			Loc start = lexer.start();
+			return new FloatExpr(start, location(), floatnum.doubleValue());
+		} else {
+			return null;
+		}
 	}
 	
 	public Expr call(String id) {
-		Location start = lexer.start();
+		Loc start = lexer.start();
 		if (lexer.accept("(")){
 			List<Expr> params = new ArrayList<>();
 			Expr param = expression();
-			Location end = null;
 			if (param != null) {
-				end = param.end;
 				while (lexer.accept(",")) {
 					params.add(param);
 					param = require(this::expression);
@@ -487,12 +445,7 @@ public class Parser {
 				params.add(param);
 			}
 			lexer.expect(")");
-			if (end == null) {
-				end = lexer.location();
-			}
-			Expr result = new CallExpr(id, params);
-			result.start = start;
-			result.end = end;
+			Expr result = new CallExpr(start, location(), id, params);
 			return result;
 		} else {
 			return null;
@@ -500,24 +453,16 @@ public class Parser {
 	}
 	
 	public LeftExpr variable(String id) {
-		LeftExpr result;
-		Location start = lexer.start();
+		IdExpr idExpr = new IdExpr(lexer.start(), location(), id);
 		if (lexer.accept("[")) {
-			IdExpr array = new IdExpr(id);
-			array.start = start;
-			array.end = location();
 			Expr index = require(this::expression);
 			lexer.expect("]");
-			result = new SubscriptExpr(array, index);
-		} else {
-			result = new IdExpr(id);
-		}
-		result.start = start;
-		result.end = lexer.location();
-		return result;
+			return new SubscriptExpr(location(), idExpr, index);
+		} 
+		return idExpr;
 	}
 	
-	public Location location() {
+	public Loc location() {
 		return lexer.location();
 	}
 }

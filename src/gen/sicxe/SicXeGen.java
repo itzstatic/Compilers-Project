@@ -1,5 +1,9 @@
-package gen;
+package gen.sicxe;
 
+import gen.Block;
+import gen.BlockWriter;
+import gen.Frame;
+import gen.block.SourceBlock;
 import ast.TypeId;
 import ast.node.Declaration;
 import ast.node.Expr;
@@ -18,6 +22,7 @@ import ast.node.expression.SubscriptExpr;
 import ast.node.statement.CompoundStmt;
 import ast.node.statement.ExprStmt;
 import ast.node.statement.IterationStmt;
+import ast.node.statement.NullStmt;
 import ast.node.statement.ReturnStmt;
 import ast.node.statement.SelectStmt;
 
@@ -27,127 +32,112 @@ public class SicXeGen {
 	
 	//The number of locals on the current frame, after the params and retaddr
 	private Frame frame = new Frame();
-	private Subroutines subs = new Subroutines();
-	private BlockWriter writer = new BlockWriter(subs);
+	protected Subroutines subs = new Subroutines();
+	protected BlockWriter writer = new BlockWriter(subs);
+	protected String name;
+	
+	public SicXeGen(String name) {
+		this.name = name;
+	}
 	
 	public Block gen(Program p) {
 		writer.start();
-		writer.write("cminus start " + Integer.toString(START, 16), 0);
+		writer.write(String.format("%s start %x", name, START), 0);
 		writer.comment("Basic important memory");
-		writer.write("_top word _start", 3);
-		writer.write("_fr resf 1", 6);
-		writer.write("_ptr resw 1", 3);
+		writer.write("top word init", 3);
+		writer.write("fr resf 1", 6);
+		writer.write("ptr resw 1", 3);
 		
 		writer.start();
 		for (Declaration d : p.declarations) {
-			//d.disp = START + writer.size();
 			if (d instanceof FuncDeclaration) {
 				writer.add(gen((FuncDeclaration)d));
-			}
-		}
-		Block functions = writer.end();
-		
-		writer.start();
-		for (Declaration d : p.declarations) {
-			if (d instanceof VarDeclaration) {
+			} else if (d instanceof VarDeclaration) {
 				writer.add(gen((VarDeclaration)d));
 			}
 		}
-		Block globals = writer.end();
+		Block declarations = writer.end();
 		
 		if (subs.push) {
 			writer.comment("Subroutine: push");
-			writer.write("_push sta @_top", 3);
-			writer.write("lda _top", 3);
+			writer.write("push sta @top", 3);
+			writer.write("lda top", 3);
 			writer.write("add #3", 3);
-			writer.write("sta _top", 3);
+			writer.write("sta top", 3);
 			writer.write("rsub", 3);
 		}
 		if (subs.pushf) {
 			writer.comment("Subroutine: pushf");
-			writer.write("_pushf stf @_top", 3);
-			writer.write("lda _top", 3);
+			writer.write("pushf stf @top", 3);
+			writer.write("lda top", 3);
 			writer.write("add #6", 3);
-			writer.write("sta _top", 3);
+			writer.write("sta top", 3);
 			writer.write("rsub", 3);
 		}
 		if (subs.pop) {
 			writer.comment("Subroutine: pop");
-			writer.write("_pop lda _top", 3);
+			writer.write("pop lda top", 3);
 			writer.write("sub #3", 3);
-			writer.write("sta _top", 3);
-			writer.write("lda @_top", 3);
+			writer.write("sta top", 3);
+			writer.write("lda @top", 3);
 			writer.write("rsub", 3);
 		}
 		if (subs.popf) {
 			writer.comment("Subroutine: popf");
-			writer.write("_popf lda _top", 3);
+			writer.write("popf lda top", 3);
 			writer.write("sub #6", 3);
-			writer.write("sta _top", 3);
-			writer.write("ldf @_top", 3);
+			writer.write("sta top", 3);
+			writer.write("ldf @top", 3);
+			writer.write("rsub", 3);
+		}
+		if (subs.set()) {
+			writer.comment("Subroutines: set & unset");
+			writer.write("set lda #1", 3);
+			writer.write("rsub", 3);
+			writer.write("unset lda #0", 3);
 			writer.write("rsub", 3);
 		}
 		if (subs.setlt) {
 			writer.comment("Subroutine: setlt");
-			writer.write("_setlt jlt * + 9", 3);
-			writer.write("lda #0", 3);
-			writer.write("j * + 6", 3);
-			writer.write("lda #1", 3);
-			writer.write("rsub", 3);
+			writer.write("setlt jlt set", 3);
+			writer.write("j unset", 3);
 		}
 		if (subs.setgt) {
 			writer.comment("Subroutine: setgt");
-			writer.write("_setgt jgt *+9", 3);
-			writer.write("lda #0", 3);
-			writer.write("j *+6", 3);
-			writer.write("lda #1", 3);
-			writer.write("rsub", 3);
+			writer.write("setgt jgt set", 3);
+			writer.write("j unset", 3);
 		}
 		if (subs.setlte) {
 			writer.comment("Subroutine: setlte");
-			writer.write("_setlte jgt *+9", 3);
-			writer.write("lda #1", 3);
-			writer.write("j *+6", 3);
-			writer.write("lda #0", 3);
-			writer.write("rsub", 3);
+			writer.write("setlte jgt unset", 3);
+			writer.write("j set", 3);
 		}
 		if (subs.setgte) {
 			writer.comment("Subroutine: setgte");
-			writer.write("_setgte jlt *+9", 3);
-			writer.write("lda #1", 3);
-			writer.write("j *+6", 3);
-			writer.write("lda #0", 3);
-			writer.write("rsub", 3);
+			writer.write("setgte jlt unset", 3);
+			writer.write("j set", 3);
 		}
 		if (subs.seteq) {
 			writer.comment("Subroutine: seteq");
-			writer.write("_seteq jeq * + 9", 3);
-			writer.write("lda #0", 3);
-			writer.write("j * + 6", 3);
-			writer.write("lda #1", 3);
-			writer.write("rsub", 3);
+			writer.write("seteq jeq set", 3);
+			writer.write("j unset", 3);
 		}
 		if (subs.setne) {
 			writer.comment("Subroutine: setne");
-			writer.write("_setne jeq * + 9", 3);
-			writer.write("lda #1", 3);
-			writer.write("j * + 6", 3);
-			writer.write("lda #0", 3);
-			writer.write("rsub", 3);
+			writer.write("setne jeq unset", 3);
+			writer.write("j set", 3);
 		}
-		writer.write("base _frame", 0);
+		writer.write("base frame", 0);
 		writer.comment("BEGIN FUNCTION DECLARATIONS");
-		writer.add(functions);
-		writer.write("_data equ *", 0);
-		writer.add(globals);
+		writer.add(declarations);
 		writer.write("nobase", 0);
 		writer.write("ltorg", 0);
 		writer.comment("Program Entry (start)");
 		writer.comment("Initialize stack top and frame");
-		writer.write("_start ldb _top", 3);
-		writer.write("J main", 4);
-		writer.write("_frame equ * + 2048", 0);
-		writer.write("end _start", 0);
+		writer.write("init ldb top", 3);
+		writer.write("J _main", 4);
+		writer.write("frame equ * + 2048", 0);
+		writer.write("end init", 0);
 		return writer.end();
 	}
 	
@@ -159,7 +149,7 @@ public class SicXeGen {
 		frame.incrementParam(d.getTotalParamSize());
 		
 		writer.comment("Push retaddr L onto stack");
-		writer.write(String.format("%s rmo l,a", d.id), 2);
+		writer.write(String.format("_%s rmo l,a", d.id), 2);
 		writer.pushWord();
 		
 		writer.add(gen(d.body));
@@ -173,7 +163,12 @@ public class SicXeGen {
 		writer.comment("VarDecl " + d.typeId + " " + d.id);
 		switch (d.scope) {
 		case GLOBAL:
-			writer.reserve(d.id, d.totalSize());
+			int size = d.totalSize();
+			switch(d.typeId) {
+			case FLOAT: writer.write(String.format("_%s resf %d", d.id, size), size);
+			case INT: 	writer.write(String.format("_%s resw %d", d.id, size), size);
+			case VOID:
+			}
 			break;
 		case LOCAL:
 			//Nothing. Blocks increment by all its locals at once
@@ -199,7 +194,10 @@ public class SicXeGen {
 		if (s instanceof SelectStmt) {
 			return gen((SelectStmt)s);
 		}
-		return null;
+		if (s instanceof NullStmt) {
+			return new SourceBlock("", 0);
+		}
+		throw new IllegalStateException(s.getClass().getSimpleName());
 	}
 	
 	public Block gen(ExprStmt s) {
@@ -232,11 +230,11 @@ public class SicXeGen {
 		
 		//Locals do not need to be decremented at run time, 
 		//if the body is forced to return
-		if (!(s.getLast() instanceof ReturnStmt)) {
+		if (!s.returns()) {
 			writer.comment("Decrement locals");
 			writer.decrement(size);
-			frame.decrementLocal(size);
 		}
+		frame.decrementLocal(size);
 		
 		writer.comment("Leave Block");
 		return writer.end();
@@ -245,7 +243,7 @@ public class SicXeGen {
 	public Block gen(ReturnStmt s) {
 		writer.start();
 		writer.comment("Begin Return");
-		if (s.value != null) {
+		if (s.hasReturnValue()) {
 			writer.comment("Evaluate and Store Return Value");
 			writer.add(gen(s.value));
 			writer.moveAccToReg(s.value);
@@ -258,11 +256,7 @@ public class SicXeGen {
 		//Return addr
 		writer.comment("Store return address");
 		writer.popWord();
-		writer.write("rmo a,l", 3);
-		
-		//Decrement params
-		writer.comment("Decrement params");
-		writer.decrement(frame.getParamDisp());
+		writer.write("rmo a,l", 2);
 		
 		writer.write("RSUB", 3);
 		writer.comment("End Return");
@@ -289,20 +283,24 @@ public class SicXeGen {
 		writer.comment("Begin If Condition");
 		Block cond = gen(s.condition);
 		Block aff = gen(s.affirmative);
-		Block neg = s.negative == null ? null : gen(s.negative);
+		Block neg = s.hasElse() ? gen(s.negative) : null;
 		writer.add(cond);
 		writer.write("comp #0", 3);
 		//If-End
-		if (neg == null) {
+		if (!s.hasElse()) {
 			writer.write("jeq * + " + (aff.size + 3), 3); //JEQ [END]
 			writer.comment("Begin If Body");
 			writer.add(aff);
 		//If-Else-End
 		} else {
-			writer.write("jeq * + " + (aff.size + 6), 3); //JEQ [ELSE]
+			boolean affRet = s.affirmative.returns();
+			int jmp = aff.size + (affRet ? 3 : 6);
+			writer.write("jeq * + " + jmp, 3); //JEQ [ELSE]
 			writer.comment("Begin If Body");
 			writer.add(aff);
-			writer.write("j * + " + (neg.size + 3), 3); //J [END]
+			if (!affRet) {
+				writer.write("j * + " + (neg.size + 3), 3); //J [END]
+			}
 			writer.comment("Begin Else Body");
 			writer.add(neg);
 		}
@@ -332,7 +330,7 @@ public class SicXeGen {
 		if (e instanceof SubscriptExpr) {
 			return gen((SubscriptExpr) e);
 		}
-		throw new IllegalStateException();
+		throw new IllegalStateException(e.getClass().getSimpleName());
 	}
 	
 	public Block gen(AssignExpr e) {
@@ -386,28 +384,28 @@ public class SicXeGen {
 		switch(e.op) {
 		case ADD: 
 			switch(typeId) {
-			case FLOAT: writer.write("addf _fr", 3); break;
+			case FLOAT: writer.write("addf fr", 3); break;
 			case INT: writer.write("addr s,a", 2); break;
 			case VOID:
 			}
 			break;
 		case SUB: 
 			switch (typeId) {
-			case FLOAT: writer.write("subf _fr", 3); break;
+			case FLOAT: writer.write("subf fr", 3); break;
 			case INT: writer.write("subr s,a", 2); break;
 			case VOID:
 			}
 			break;
 		case MUL:
 			switch (typeId) {
-			case FLOAT: writer.write("mulf _fr", 3); break;
+			case FLOAT: writer.write("mulf fr", 3); break;
 			case INT: writer.write("mulr s,a", 2); break;
 			case VOID:
 			}
 			break;
 		case DIV:
 			switch (typeId) {
-			case FLOAT: writer.write("divf _fr", 3); break;
+			case FLOAT: writer.write("divf fr", 3); break;
 			case INT: writer.write("divr s,a", 2); break;
 			case VOID:
 			}
@@ -419,7 +417,9 @@ public class SicXeGen {
 		case LTE: writer.setlte(typeId); break;
 		case GTE: writer.setgte(typeId); break;
 		}
-		//TODO Jumps for relops??
+		if (e.op.isRelational() && e.left.getTypeId() == TypeId.FLOAT) {
+			writer.write("float", 1); //Cast to float
+		}
 		writer.comment("End Binary Expr");
 		return writer.end();
 	}
@@ -433,11 +433,11 @@ public class SicXeGen {
 			writer.push(param);
 		}
 		writer.comment("New frame");
-		writer.write("lda _top", 3);
+		writer.write("lda top", 3);
 		writer.write("sub #" + e.func.getTotalParamSize(), 3);
 		writer.write("rmo a,b", 2);
 		writer.comment("Jump");
-		writer.write("+JSUB " + e.func.id, 4);
+		writer.write("+JSUB _" + e.func.id, 4);
 		
 		//Decrement by my frame size
 		writer.comment("Restore frame");
@@ -483,12 +483,12 @@ public class SicXeGen {
 		if (var.isArray()) {
 			//Load address of array
 			switch (var.scope) {
-			case GLOBAL: writer.write(String.format("lda #%s", var.id), 3); break;
+			case GLOBAL: writer.write(String.format("lda #_%s", var.id), 3); break;
 			case LOCAL:
-				writer.write(String.format("lda #_frame + %d", var.disp), 3);
+				writer.write(String.format("lda #frame + %d", var.disp), 3);
 				//writer.write("addr b,a", 2);
 				break;
-			case PARAM: writer.write(String.format("lda _frame + %d", var.disp), 3); break;
+			case PARAM: writer.write(String.format("lda frame + %d", var.disp), 3); break;
 			}
 		} else { //Load value of variable
 			StringBuilder load = new StringBuilder();

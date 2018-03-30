@@ -1,5 +1,6 @@
 package ast.node.statement;
 
+import ast.Loc;
 import ast.Visitor;
 import ast.node.Expr;
 import ast.node.Stmt;
@@ -9,7 +10,8 @@ public class IterationStmt extends Stmt {
 	public Expr condition;
 	public Stmt body;
 	
-	public IterationStmt(Expr condition, Stmt body) {
+	public IterationStmt(Loc start, Loc end, Expr condition, Stmt body) {
+		super(start, end);
 		this.condition = condition;
 		this.body = body;
 	}
@@ -34,7 +36,7 @@ public class IterationStmt extends Stmt {
 	public Stmt propagate() {
 		if (condition instanceof IntegerExpr) {
 			if (((IntegerExpr) condition).value == 0) {
-				return body;
+				return new NullStmt(start);
 			}
 		}
 		return this;

@@ -21,11 +21,6 @@ public class Frame {
 		localSize = 0;
 	}
 	
-//	public void reset() {
-//		localSize = 0;
-//		paramSize = 0;
-//	}
-	
 	public int getFrameDisp() {
 		return 3 + paramSize + localSize;
 	}

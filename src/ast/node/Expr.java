@@ -1,9 +1,16 @@
 package ast.node;
 
+import ast.Loc;
 import ast.Node;
 import ast.TypeId;
+import ast.node.declare.VarDeclaration;
 
 public abstract class Expr extends Node {
+	
+	public Expr(Loc start, Loc end) {
+		super(start, end);
+	}
+
 	//x = 2 + 3;
 	//Returns the one propagated node, or this
 	public Expr propagate() {
@@ -17,12 +24,17 @@ public abstract class Expr extends Node {
 	}
 	
 	public String typeToString() {
-		return getTypeId().name()
+		return getTypeId().name().toLowerCase()
 			+ (this.isArray() ? "[]" : "");
 	}
 	
 	public boolean typeEquals(Expr e) {
 		return getTypeId() == e.getTypeId()
 			&& this.isArray() == e.isArray();
+	}
+	
+	public boolean typeEquals(VarDeclaration d) {
+		return getTypeId() == d.typeId
+			&& this.isArray() == d.isArray();
 	}
 }
