@@ -1,18 +1,11 @@
 package semantic;
 
-import gen.sicxe.SicXeGenUtil;
-
-import java.util.Iterator;
-import java.util.ListIterator;
-
-import ast.Loc;
 import ast.Logger;
 import ast.TypeId;
 import ast.Visitor;
 import ast.node.Declaration;
 import ast.node.Expr;
 import ast.node.Program;
-import ast.node.Stmt;
 import ast.node.declare.FuncDeclaration;
 import ast.node.declare.VarDeclaration;
 import ast.node.expression.AssignExpr;
@@ -223,7 +216,7 @@ public class Checker extends Visitor {
 		
 		//Actual parameter count must match formal parameter count
 		int expectCount = f.params.size();
-		int actualCount = e.params.size();
+		int actualCount = e.arguments.size();
 		if (expectCount != actualCount) {
 			Logger.INSTANCE.log(e, "Expected " + expectCount + " arguments not " + actualCount);
 		}
@@ -235,7 +228,7 @@ public class Checker extends Visitor {
 			//Useful for the checking here
 			IdExpr box = new IdExpr(null, null, expect.id);
 			box.var = expect;
-			Expr actual = e.params.get(i);
+			Expr actual = e.arguments.get(i);
 			
 			if (!actual.typeEquals(box)) {
 				Logger.INSTANCE.log(actual, "Expected " + box.typeToString() + " not " + actual.typeToString());

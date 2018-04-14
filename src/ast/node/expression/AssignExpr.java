@@ -14,9 +14,6 @@ public class AssignExpr extends Expr {
 		this.right = right;
 	}
 	
-	//To compile:
-	public int offset; //Of the left
-
 	@Override
 	public TypeId getTypeId() {
 		return right.getTypeId();

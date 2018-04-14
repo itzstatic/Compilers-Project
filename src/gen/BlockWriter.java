@@ -6,6 +6,7 @@ import gen.sicxe.Subroutines;
 
 import java.util.Stack;
 
+import ast.Sizes;
 import ast.TypeId;
 import ast.node.Expr;
 import ast.node.declare.VarDeclaration;
@@ -21,9 +22,11 @@ public class BlockWriter {
 	private StringBuilder prefix = new StringBuilder(); //indentation: number of tabs
 	
 	private Subroutines subs;
+	private Sizes sizes;
 	
-	public BlockWriter(Subroutines subs) {
+	public BlockWriter(Subroutines subs, Sizes sizes) {
 		this.subs = subs;
+		this.sizes = sizes;
 	}
 	
 	public int size() {
@@ -72,7 +75,7 @@ public class BlockWriter {
 	//Expects the index to be loaded in A
 	//Puts index in X or ptr in @_ptr - whichever is necessary.
 	public void index(VarDeclaration array) {
-		write("mul #" + array.typeId.size, 3);
+		write("mul #" + sizes.sizeOf(array.typeId), 3);
 		switch(array.scope) {
 		case GLOBAL:
 		case LOCAL:

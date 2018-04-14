@@ -1,6 +1,8 @@
 
 
 import gen.Block;
+import gen.ree.QuadWriter;
+import gen.ree.ReeGen;
 import gen.sicxe.SicXeGen;
 
 import java.io.File;
@@ -15,6 +17,7 @@ import parse.Lexer;
 import parse.Parser;
 import semantic.Checker;
 import semantic.Symtab;
+import semantic.SymtabInit;
 import ast.CompileError;
 import ast.node.Program;
 
@@ -38,23 +41,25 @@ public class Start {
 		Program p = parser.program();
 
 		//Semantic check
-		p.accept(new Checker(new Symtab()));
+		Symtab symtab = new Symtab();
+		new SymtabInit().init(symtab);
+		p.accept(new Checker(symtab));
 	
-
 		String mainName = fileName.split("\\.")[0];
-		//Codegen
-		SicXeGen gen;
-//		if (p.runnable) {
-//			gen = new SicXeGen(mainName);
-//		} else {
-//			gen = new ExtGen(mainName);
-//		}
-		gen = new SicXeGen(mainName);
-		Block b = gen.gen(p);
-		
 		PrintWriter w = new PrintWriter(new File(mainName + ".asm"));
 		
+		
+		SicXeGen gen = new SicXeGen(mainName);
+		Block b = gen.gen(p);
 		b.write(w);
+		
+//		ReeGen gen = new ReeGen();
+//		gen.gen(p);
+//		
+//		QuadWriter qw = new QuadWriter(w);
+//		
+//		qw.write(gen.quads);
+		
 		w.flush();
 		System.out.println("Compilation complete.");
 		w.close();

@@ -435,17 +435,17 @@ public class Parser {
 	public Expr call(String id) {
 		Loc start = lexer.start();
 		if (lexer.accept("(")){
-			List<Expr> params = new ArrayList<>();
-			Expr param = expression();
-			if (param != null) {
+			List<Expr> args = new ArrayList<>();
+			Expr arg = expression();
+			if (arg != null) {
 				while (lexer.accept(",")) {
-					params.add(param);
-					param = require(this::expression);
+					args.add(arg);
+					arg = require(this::expression);
 				}
-				params.add(param);
+				args.add(arg);
 			}
 			lexer.expect(")");
-			Expr result = new CallExpr(start, location(), id, params);
+			Expr result = new CallExpr(start, location(), id, args);
 			return result;
 		} else {
 			return null;

@@ -4,6 +4,7 @@ import gen.Block;
 import gen.BlockWriter;
 import gen.Frame;
 import gen.block.SourceBlock;
+import ast.Sizes;
 import ast.TypeId;
 import ast.node.Declaration;
 import ast.node.Expr;
@@ -31,9 +32,11 @@ public class SicXeGen {
 	final private static int START = 0x100;
 	
 	//The number of locals on the current frame, after the params and retaddr
+	private Sizes sizes = new SicXeSizes();
 	private Frame frame = new Frame();
+	
 	protected Subroutines subs = new Subroutines();
-	protected BlockWriter writer = new BlockWriter(subs);
+	protected BlockWriter writer = new BlockWriter(subs, sizes);
 	protected String name;
 	
 	public SicXeGen(String name) {
@@ -142,11 +145,18 @@ public class SicXeGen {
 	}
 	
 	public Block gen(FuncDeclaration d) {
+		int paramDisp = 0;
+		for (VarDeclaration param : d.params) {
+			param.disp = paramDisp;
+			paramDisp += param.totalSize(sizes);
+		}
+		
+		
 		writer.start();
 		writer.comment("Begin FuncDecl " + d.typeId + " " + d.id + "()");
 		
 		//Create param disps
-		frame.incrementParam(d.getTotalParamSize());
+		frame.incrementParam(d.getTotalParamSize(sizes));
 		
 		writer.comment("Push retaddr L onto stack");
 		writer.write(String.format("_%s rmo l,a", d.id), 2);
@@ -163,7 +173,7 @@ public class SicXeGen {
 		writer.comment("VarDecl " + d.typeId + " " + d.id);
 		switch (d.scope) {
 		case GLOBAL:
-			int size = d.totalSize();
+			int size = d.totalSize(sizes);
 			switch(d.typeId) {
 			case FLOAT: writer.write(String.format("_%s resf %d", d.id, size), size);
 			case INT: 	writer.write(String.format("_%s resw %d", d.id, size), size);
@@ -214,11 +224,11 @@ public class SicXeGen {
 		int disp = frame.getFrameDisp();
 		for (VarDeclaration local : s.locals) {
 			local.disp = disp;
-			disp += local.totalSize();
+			disp += local.totalSize(sizes);
 		}
 
 		
-		int size = s.getTotalLocalSize();
+		int size = s.getTotalLocalSize(sizes);
 		writer.comment("Increment locals");	
 		frame.incrementLocal(size);
 		writer.increment(size);
@@ -307,6 +317,18 @@ public class SicXeGen {
 		writer.comment("End If");
 		return writer.end();
 	}
+	
+//	private Block genToCC(Expr e) {
+//		if (e instanceof BinaryExpr && ((BinaryExpr) e).op.isRelational()) {
+//			return genToCC((BinaryExpr)e);
+//		} else {
+//			writer.start();
+//			writer.add(gen(e));
+//			writer.write("comp #0", 3);
+//			//JEQ to decide after
+//			return writer.end();
+//		}
+//	}
 	
 	public Block gen(Expr e) {
 		if (e instanceof AssignExpr) {
@@ -427,14 +449,14 @@ public class SicXeGen {
 	public Block gen(CallExpr e) {
 		writer.start();
 		writer.comment("Begin Call " + e.id + "()");
-		for (Expr param : e.params) {
+		for (Expr arg : e.arguments) {
 			writer.comment("Eval parameter");
-			writer.add(gen(param));
-			writer.push(param);
+			writer.add(gen(arg));
+			writer.push(arg);
 		}
 		writer.comment("New frame");
 		writer.write("lda top", 3);
-		writer.write("sub #" + e.func.getTotalParamSize(), 3);
+		writer.write("sub #" + e.func.getTotalParamSize(sizes), 3);
 		writer.write("rmo a,b", 2);
 		writer.comment("Jump");
 		writer.write("+JSUB _" + e.func.id, 4);

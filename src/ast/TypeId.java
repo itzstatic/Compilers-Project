@@ -2,15 +2,9 @@ package ast;
 
 
 public enum TypeId {
-	INT(3), //TODO Actual offsets?
-	FLOAT(6),
-	VOID(0);
-	
-	public final int size;
-	
-	private TypeId(int size) {
-		this.size = size;
-	}
+	INT, 
+	FLOAT,
+	VOID
 	
 	//Returns the max (i.e. promotion)
 //	public static TypeId max(TypeId a, TypeId b) {

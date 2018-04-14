@@ -1,5 +1,6 @@
 package gen.sicxe;
 
+import ast.Operation;
 import ast.node.Expr;
 import ast.node.declare.VarDeclaration;
 
@@ -47,6 +48,12 @@ public class SicXeGenUtil {
 		result |= (SICXE_MAN & man);
 		return result;
 	}
+	
+//	public static void buildJIfNotRelOp(StringBuilder j, Operation relOp) {
+//		switch(relOp) {
+//		case EQ: j.append("jne");
+//		}
+//	}
 	
 	public static void buildStoreA(StringBuilder store, Expr e) {
 		switch(e.getTypeId()) {

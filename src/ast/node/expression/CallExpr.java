@@ -11,15 +11,15 @@ import ast.node.declare.FuncDeclaration;
 public class CallExpr extends Expr {
 
 	public final String id; //Of the function
-	public final List<Expr> params;
+	public final List<Expr> arguments;
 	
 	//To be compiled
 	public FuncDeclaration func;
 	
-	public CallExpr(Loc start, Loc end, String id, List<Expr> params) {
+	public CallExpr(Loc start, Loc end, String id, List<Expr> arguments) {
 		super(start, end);
 		this.id = id;
-		this.params = params;
+		this.arguments = arguments;
 	}
 	
 	@Override
@@ -30,8 +30,8 @@ public class CallExpr extends Expr {
 	@Override
 	public void accept(Visitor v) {
 		v.visit(this);
-		for (Expr param : params) {
-			param.accept(v);
+		for (Expr arg : arguments) {
+			arg.accept(v);
 		}
 		v.postVisit(this);
 	}

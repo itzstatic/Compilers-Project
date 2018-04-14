@@ -2,6 +2,7 @@ package ast.node.declare;
 
 import ast.Loc;
 import ast.Scope;
+import ast.Sizes;
 import ast.TypeId;
 import ast.node.Declaration;
 
@@ -33,14 +34,14 @@ public class VarDeclaration extends Declaration {
 		return dimension != 0;
 	}
 	
-	public int totalSize() {
+	public int totalSize(Sizes sizes) {
 		if (dimension == 0) {
-			return typeId.size;
+			return sizes.sizeOf(typeId);
 		}
 		if (dimension == -1) {
-			return 3; //PTR
+			return sizes.sizeOfPtr();
 		}
-		return typeId.size * dimension;
+		return sizes.sizeOf(typeId) * dimension;
 	}
 	
 	@Override

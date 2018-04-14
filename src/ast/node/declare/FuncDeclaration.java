@@ -3,6 +3,7 @@ package ast.node.declare;
 import java.util.List;
 
 import ast.Loc;
+import ast.Sizes;
 import ast.TypeId;
 import ast.Visitor;
 import ast.node.Declaration;
@@ -17,18 +18,12 @@ public class FuncDeclaration extends Declaration {
 		super(start, end, typeId, id);
 		this.params = params;
 		this.body = body;
-		
-		int paramDisp = 0;
-		for (VarDeclaration param : params) {
-			param.disp = paramDisp;
-			paramDisp += param.totalSize();
-		}
 	}
 
-	public int getTotalParamSize() {
+	public int getTotalParamSize(Sizes sizes) {
 		int size = 0;
 		for (VarDeclaration param : params) {
-			size += param.totalSize();
+			size += param.totalSize(sizes);
 		}
 		return size;
 	}

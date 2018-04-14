@@ -3,6 +3,7 @@ package ast.node.statement;
 import java.util.List;
 
 import ast.Loc;
+import ast.Sizes;
 import ast.Visitor;
 import ast.node.Stmt;
 import ast.node.declare.VarDeclaration;
@@ -18,10 +19,10 @@ public class CompoundStmt extends Stmt {
 		this.statements = statements;
 	}
 	
-	public int getTotalLocalSize() {
+	public int getTotalLocalSize(Sizes sizes) {
 		int size = 0;
 		for (VarDeclaration local : locals) {
-			size += local.totalSize();
+			size += local.totalSize(sizes);
 		}
 		return size;
 	}
